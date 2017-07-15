@@ -18,9 +18,10 @@ app.use(bodyParser.json()); //can send json to express app
 //----------------------------TO DO ROUTES------------------------------------//
 
 //resource creation
-app.post('/todos', (req, res) => {
+app.post('/todos', authenticate, (req, res) => {
   var todo = new Todo({
-    text: req.body.text
+    text: req.body.text,
+    _creator: req.user._id
   });
 
   todo.save().then((doc) => {
@@ -31,8 +32,10 @@ app.post('/todos', (req, res) => {
 });
 
 //retrieve resources
-app.get('/todos', (req, res) => {
-  Todo.find().then((todos) => {
+app.get('/todos', authenticate, (req, res) => {
+  Todo.find({
+    _creator: req.user._id //all todos for currently logged in user
+  }).then((todos) => {
     res.send({todos});
   }, (e) => {
     res.status(400).send(e);
@@ -58,13 +61,16 @@ app.get('/todos/:id', (req, res) => {
 });
 
 //delete resource
-app.delete('/todos/:id', (req, res) => {
+app.delete('/todos/:id', authenticate, (req, res) => {
   var id = req.params.id;
   if(!ObjectID.isValid(id)) {
     res.status(404).send();
   }
 
-  Todo.findByIdAndRemove(id).then((todo) => {
+  Todo.findByOneAndRemove({
+    _id: id,
+    _creator: req.user._id
+   }).then((todo) => {
     if(todo != null) {
       res.send({todo});
     }
@@ -90,7 +96,7 @@ app.patch('/todos/:id', (req, res) => {
     body.completedAt = null; //remove val
   }
 
-  Todo.findByIdAndUpdate(id, {$set: body}, {new: true}).then((todo) => {
+  Todo.findByOneAndUpdate({_id: id, _creator: req.user._id}, {$set: body}, {new: true}).then((todo) => {
     if(todo != null){
       res.send({todo});
     }
@@ -100,7 +106,7 @@ app.patch('/todos/:id', (req, res) => {
   });
 });
 
-//------------------------USERS ROUTES----------------------------------------//
+//-------------------------------USERS ROUTES---------------------------------//
 
 //POST /users
 app.post('/users', (req, res) => {
@@ -135,7 +141,7 @@ app.post('/users/login', (req, res) => {
 });
 
 // DELETE /users/me/token --> logging out
-app.delete('users/me/token', authenticate, (req, res) => {
+app.delete('/users/me/token', authenticate, (req, res) => {
   req.user.removeToken(req.token).then(() => {
     res.status(200).send();
   }, () => {

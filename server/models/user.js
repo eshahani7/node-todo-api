@@ -51,7 +51,7 @@ UserSchema.methods.generateAuthToken = function() {
 
   //return allows chaining
   return user.save().then(() => {
-    return token;
+    return token; //success arg for next then call
   });
 };
 
