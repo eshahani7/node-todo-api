@@ -15,6 +15,8 @@ const port = process.env.PORT;
 
 app.use(bodyParser.json()); //can send json to express app
 
+//----------------------------TO DO ROUTES------------------------------------//
+
 //resource creation
 app.post('/todos', (req, res) => {
   var todo = new Todo({
@@ -47,7 +49,7 @@ app.get('/todos/:id', (req, res) => {
 
   Todo.findById(id).then((todo) => {
     if(todo != null) {
-      res.send({todo});
+      res.send({todo}); //todo is a property of an object
     }
     res.status(404).send();
   }).catch((e) => {
@@ -98,6 +100,8 @@ app.patch('/todos/:id', (req, res) => {
   });
 });
 
+//------------------------USERS ROUTES----------------------------------------//
+
 //POST /users
 app.post('/users', (req, res) => {
   //use pick to pick off email and password
@@ -126,6 +130,15 @@ app.post('/users/login', (req, res) => {
       res.header('x-auth', token).send(user);
     });
   }).catch((e) => {
+    res.status(400).send();
+  });
+});
+
+// DELETE /users/me/token --> logging out
+app.delete('users/me/token', authenticate, (req, res) => {
+  req.user.removeToken(req.token).then(() => {
+    res.status(200).send();
+  }, () => {
     res.status(400).send();
   });
 });

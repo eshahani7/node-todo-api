@@ -33,6 +33,7 @@ var UserSchema = new mongoose.Schema({
    }]
 });
 
+//instance methods
 //use to override response of http post
 UserSchema.methods.toJSON = function () {
   var user = this;
@@ -41,7 +42,6 @@ UserSchema.methods.toJSON = function () {
   return _.pick(userObject, ['_id', 'email']);
 }
 
-//instance methods
 UserSchema.methods.generateAuthToken = function() {
   var user = this;
   var access = 'auth';
@@ -55,6 +55,17 @@ UserSchema.methods.generateAuthToken = function() {
   });
 };
 
+UserSchema.methods.removeToken = function(token) {
+  var user = this;
+
+  return user.update({
+    $pull: {
+      tokens: {token} //remove entire if token matches arg
+    }
+  });
+};
+
+//static methods
 UserSchema.statics.findByToken = function(token) {
   var User = this; //model is in the "this" binding
   var decoded;
@@ -94,9 +105,10 @@ UserSchema.statics.findByCredentials = function (email, password) {
 };
 
 //Mongoose middleware
+//run this code before save --> hash password in callback
 UserSchema.pre('save', function(next) {
   var user = this;
-  if(user.isModified('password')) {
+  if(user.isModified('password')) { //only want to hash if pass was just edited
     bcrypt.genSalt(10, (err, salt) => {
       bcrypt.hash(user.password, salt, (err, hash) => {
         user.password = hash;
